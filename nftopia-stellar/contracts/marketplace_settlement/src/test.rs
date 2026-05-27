@@ -510,15 +510,11 @@ fn test_rate_limiter_defaults_and_cooldown_active() {
         &86400u64,
     );
 
-    if let Ok(Err(invoke_error)) = res {
-        let actual_error: soroban_sdk::Error = invoke_error.into();
-        let expected_error: soroban_sdk::Error = SettlementError::CooldownActive.into();
-        assert_eq!(actual_error, expected_error);
+    if let Err(Ok(invoke_error)) = res {
+        let actual_error: SettlementError = invoke_error.into();
+        assert_eq!(actual_error, SettlementError::CooldownActive);
     } else {
-        panic!(
-            "Expected Err(Ok(SettlementError::CooldownActive)), got: {:?}",
-            res
-        );
+        panic!("Expected Err(Ok(CooldownActive)), got: {:?}", res);
     }
 }
 
@@ -550,15 +546,12 @@ fn test_rate_limiter_independent_users_and_functions() {
         &mk_asset(&env),
         &86400u64,
     );
-    if let Ok(Err(invoke_error)) = res {
-        let actual_error: soroban_sdk::Error = invoke_error.into();
-        let expected_error: soroban_sdk::Error = SettlementError::CooldownActive.into();
-        assert_eq!(actual_error, expected_error);
+
+    if let Err(Ok(invoke_error)) = res {
+        let actual_error: SettlementError = invoke_error.into();
+        assert_eq!(actual_error, SettlementError::CooldownActive);
     } else {
-        panic!(
-            "Expected Err(Ok(SettlementError::CooldownActive)), got: {:?}",
-            res
-        );
+        panic!("Expected Err(Ok(CooldownActive)), got: {:?}", res);
     }
 
     // seller_2 should NOT be blocked
@@ -614,15 +607,12 @@ fn test_rate_limiter_window_reset() {
         &mk_asset(&env),
         &86400u64,
     );
-    if let Ok(Err(invoke_error)) = res {
-        let actual_error: soroban_sdk::Error = invoke_error.into();
-        let expected_error: soroban_sdk::Error = SettlementError::CooldownActive.into();
-        assert_eq!(actual_error, expected_error);
+
+    if let Err(Ok(invoke_error)) = res {
+        let actual_error: SettlementError = invoke_error.into();
+        assert_eq!(actual_error, SettlementError::CooldownActive);
     } else {
-        panic!(
-            "Expected Err(Ok(SettlementError::CooldownActive)), got: {:?}",
-            res
-        );
+        panic!("Expected Err(Ok(CooldownActive)), got: {:?}", res);
     }
 
     // Move ledger time forward by 60 seconds
@@ -688,14 +678,10 @@ fn test_rate_limiter_admin_update_config() {
     // 3rd bid should fail under new configuration
     let res = c2.try_place_bid(&id, &bidder, &130_000i128, &None);
 
-    if let Ok(Err(invoke_error)) = res {
-        let actual_error: soroban_sdk::Error = invoke_error.into();
-        let expected_error: soroban_sdk::Error = SettlementError::CooldownActive.into();
-        assert_eq!(actual_error, expected_error);
+    if let Err(Ok(invoke_error)) = res {
+        let actual_error: SettlementError = invoke_error.into();
+        assert_eq!(actual_error, SettlementError::CooldownActive);
     } else {
-        panic!(
-            "Expected Err(Ok(SettlementError::CooldownActive)), got: {:?}",
-            res
-        );
+        panic!("Expected Err(Ok(CooldownActive)), got: {:?}", res);
     }
 }
