@@ -23,3 +23,15 @@ export const Loading = () => (
     <OptimizedImage src="/nftopia-03.svg" alt="Loading" width={300} height={200} />
   </div>
 );
+
+export const WithBlur = () => (
+  <div style={{ width: 300 }}>
+    <OptimizedImage src="/nftopia-03.svg" alt="Blur" width={300} height={200} blurPlaceholder="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjMwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjZGRkIi8+PC9zdmc+" />
+  </div>
+);
+
+export const Broken = () => (
+  <div style={{ width: 300 }}>
+    <OptimizedImage src="/invalid-url.jpg" alt="Broken" width={300} height={200} fallbackSrc="/images/fallbacks/nft-fallback.svg" />
+  </div>
+);
