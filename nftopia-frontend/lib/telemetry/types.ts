@@ -31,30 +31,45 @@ export interface TelemetryPayloadMap {
     provider: "freighter" | "albedo" | "walletconnect";
     error_code: string;
   };
+
   auth_login_submitted: {
     auth_method: "email" | "wallet";
     surface: "login_page" | "modal";
+    attempt_id: string;
   };
   auth_login_succeeded: {
     auth_method: "email" | "wallet";
     latency_ms: number;
+    attempt_id: string;
+    had_wallet_connected: boolean;
   };
   auth_login_failed: {
     auth_method: "email" | "wallet";
+    attempt_id: string;
+    latency_ms: number;
     error_code: string;
+    failure_stage: "validation" | "request" | "response" | "state_sync";
     validation_error_count?: number;
   };
   auth_register_submitted: {
     auth_method: "email" | "wallet";
     surface: "register_page" | "modal";
+    attempt_id: string;
+    has_optional_username: boolean;
+    has_connected_wallet: boolean;
   };
   auth_register_succeeded: {
     auth_method: "email" | "wallet";
+    attempt_id: string;
     latency_ms: number;
+    redirects_to_login: boolean;
   };
   auth_register_failed: {
     auth_method: "email" | "wallet";
+    attempt_id: string;
+    latency_ms: number;
     error_code: string;
+    failure_stage: "validation" | "csrf" | "request" | "response";
     validation_error_count?: number;
   };
   collection_create_submitted: {
