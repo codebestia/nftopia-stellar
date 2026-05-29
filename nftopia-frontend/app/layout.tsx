@@ -3,6 +3,15 @@ import "./globals.css";
 import ApolloWrapper from "@/lib/graphql/apollo-wrapper";
 import { AuthProvider } from "@/lib/context/AuthContext";
 
+
+// Client-only TelemetryBootstrapper
+function TelemetryBootstrapper() {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { useTelemetry } = require("@/hooks/useTelemetry");
+  useTelemetry();
+  return null;
+}
+
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
@@ -65,20 +74,18 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#181359" />
         <meta name="msapplication-tap-highlight" content="no" />
-        
         {/* Favicon using only PNG */}
         <link rel="icon" href="/nftopia-03.png" type="image/png" />
         <link rel="shortcut icon" href="/nftopia-03.png" type="image/png" />
         <link rel="apple-touch-icon" href="/nftopia-03.png" />
-        
         {/* PWA Meta Tags */}
         <link rel="manifest" href="/manifest.json" />
-        
         {/* Microsoft Tiles */}
         <meta name="msapplication-TileImage" content="/nftopia-03.png" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className={inter.className}>
+        <TelemetryBootstrapper />
         <AuthProvider>
           <ApolloWrapper>{children}</ApolloWrapper>
         </AuthProvider>
