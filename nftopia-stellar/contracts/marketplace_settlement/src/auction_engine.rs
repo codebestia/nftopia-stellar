@@ -1,8 +1,8 @@
 use crate::error::SettlementError;
 use crate::events::{
     emit_auction_cancelled_with_refunds, emit_auction_created, emit_auction_ended,
-    emit_auction_extended, emit_bid_escrowed, emit_bid_placed, emit_bid_refunded, emit_bid_revealed,
-    AuctionCancelledWithRefundsEvent, AuctionCreatedEvent, AuctionEndedEvent,
+    emit_auction_extended, emit_bid_escrowed, emit_bid_placed, emit_bid_refunded,
+    emit_bid_revealed, AuctionCancelledWithRefundsEvent, AuctionCreatedEvent, AuctionEndedEvent,
     AuctionExtendedEvent, BidEscrowedEvent, BidPlacedEvent, BidRefundedEvent, BidRevealedEvent,
 };
 use crate::security::frontrun_protection::{CommitRevealScheme, FrontRunningDetector};

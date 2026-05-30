@@ -120,7 +120,7 @@ export class ContractEventIndexerJob {
             .createQueryBuilder()
             .insert()
             .into(ContractEvent)
-            .values(entity)
+            .values(entity as any)
             .orIgnore() // idempotent: skip duplicates on (txHash, eventIndex)
             .execute()
             .then((result) => {
