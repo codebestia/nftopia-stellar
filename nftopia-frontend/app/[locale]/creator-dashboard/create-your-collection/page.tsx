@@ -100,7 +100,6 @@ export default function CreateYourCollection() {
 
     setErrors({});
     setIsLoading(true);
-    setIsUploadingImage(true);
 
     try {
       const csrfToken = await getCookie();
@@ -161,7 +160,6 @@ export default function CreateYourCollection() {
       showError(errorMessage);
     } finally {
       setIsLoading(false);
-      setIsUploadingImage(false);
     }
   };
 
