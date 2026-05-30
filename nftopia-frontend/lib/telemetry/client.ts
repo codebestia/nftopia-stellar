@@ -2,6 +2,7 @@ import { getTelemetryConfig } from "./config";
 import { TelemetryAdapter } from "./adapters/base";
 import { noopAdapter } from "./adapters/noop";
 import { posthogAdapter } from "./adapters/posthog";
+import { enrichTelemetryPayload } from "./context/enricher";
 
 export interface TelemetryClient {
   init(): Promise<void>;
@@ -46,7 +47,9 @@ class TelemetryCore implements TelemetryClient {
 
   track(eventName: string, payload?: Record<string, unknown>) {
     try {
-      this.adapter.track(eventName, payload);
+      // Enrich payload with context before sending to adapter
+      const enriched = enrichTelemetryPayload(payload || {});
+      this.adapter.track(eventName, enriched);
     } catch (e) {
       if (getTelemetryConfig().debug) {
         // eslint-disable-next-line no-console
