@@ -9,6 +9,11 @@ export const CTA_IDS = {
   MINT_NFT_LANDING: "mint_nft_landing",
   SELL_NFT_MARKETPLACE: "sell_nft_marketplace",
   CATEGORY_CARD_CLICK: "category_card_click",
+  FILTER_CATEGORY: "filter_category",
+  FILTER_PRICE_RANGE: "filter_price_range",
+  FILTER_SALE_TYPE: "filter_sale_type",
+  FILTER_BLOCKCHAIN: "filter_blockchain",
+  FILTER_SORT_BY: "filter_sort_by",
   // ...add more as needed
 } as const;
 
@@ -48,14 +53,14 @@ export const NAV_PLACEMENTS = {
 
 // --- Event Payload Types ---
 export type CTAInteractionType = "button" | "link" | "icon_button" | "card";
-export type CTAUiVariant = "primary" | "secondary" | "ghost" | "outline" | "text" | "unknown";
+export type CTAUiVariant = "primary" | "secondary" | "ghost" | "outline" | "text" | "wallet" | "unknown";
 
 export interface CtaClickedPayload {
-  cta_id: typeof CTA_IDS[keyof typeof CTA_IDS];
-  placement: typeof CTA_PLACEMENTS[keyof typeof CTA_PLACEMENTS];
+  cta_id: string; // Accept any string, enforce at runtime
+  placement: string;
   destination_route: string;
   interaction_type: CTAInteractionType;
-  ui_variant: CTAUiVariant;
+  ui_variant: CTAUiVariant | string;
   authenticated?: boolean;
   locale_source?: string;
   has_wallet_connected?: boolean;
@@ -66,10 +71,10 @@ export interface CtaClickedPayload {
 export type NavMenuState = "expanded" | "collapsed" | "drawer_open" | "unknown";
 
 export interface NavItemClickedPayload {
-  nav_item_id: typeof NAV_ITEM_IDS[keyof typeof NAV_ITEM_IDS];
-  placement: typeof NAV_PLACEMENTS[keyof typeof NAV_PLACEMENTS];
+  nav_item_id: string;
+  placement: string;
   destination_route: string;
-  menu_state: NavMenuState;
+  menu_state: NavMenuState | string;
   authenticated?: boolean;
   locale_source?: string;
   [key: string]: any;
