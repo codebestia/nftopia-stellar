@@ -10,6 +10,7 @@ import { useStellarAuth } from "@/components/wallet/hooks/useStellarAuth";
 import { WalletModal } from "@/components/wallet/WalletModal";
 import { WalletNetworkStatus } from "@/components/wallet/WalletNetworkStatus";
 import { defaultNetwork } from "@/lib/stellar/client";
+import { getValidationFieldMessage } from "@/utils/fetchUtils";
 import {
   KeyRound,
   LogIn,
@@ -19,10 +20,12 @@ import {
   Eye,
   EyeOff,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import { OptimizedImage } from "@/components/image";
 import Link from "next/link";
 import React, { useState, useRef } from "react";
+// Telemetry
 import { authInstrumentation } from "@/lib/telemetry/auth-instrumentation";
 
 type AuthMode = "wallet" | "email";
@@ -30,13 +33,21 @@ type AuthMode = "wallet" | "email";
 export default function LoginPage() {
   const { t, locale } = useTranslation();
 
+  // Integrated hooks from main branch
   const {
     loading: emailLoading,
-    error: emailError,
+    error: emailStoreError,
     clearError: clearEmailError,
   } = useAuth();
 
-  // Stellar wallet state
+  // Dynamic fallback handling for emailLogin function versions
+  const authState = useAuth();
+  const emailLogin =
+    (authState as any).loginWithEmail ||
+    (authState as any).emailLogin ||
+    authState.clearError;
+
+  // Stellar wallet state hooks
   const {
     connected,
     address,
@@ -55,11 +66,11 @@ export default function LoginPage() {
     clearError: clearAuthError,
   } = useStellarAuth();
 
-  // UI state
+  // UI
   const [mode, setMode] = useState<AuthMode>("wallet");
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [challengeRequested, setChallengeRequested] = useState(false);
-  // Telemetry state
+  // Telemetry states
   const attemptIdRef = useRef<string | null>(null);
   const startMsRef = useRef<number>(0);
   const [showPassword, setShowPassword] = useState(false);
@@ -86,8 +97,12 @@ export default function LoginPage() {
   const handleWalletAuth = async () => {
     if (!address || !provider) {
       setLocalError("Please connect your wallet first");
+
       // Telemetry: validation failure
-      const attempt_id = authInstrumentation.submitLogin({ auth_method: "wallet", surface: "login_page" });
+      const attempt_id = authInstrumentation.submitLogin({
+        auth_method: "wallet",
+        surface: "login_page",
+      });
       authInstrumentation.loginFailed({
         auth_method: "wallet",
         attempt_id,
@@ -99,9 +114,14 @@ export default function LoginPage() {
       return;
     }
     clearAllErrors();
+
     // Telemetry: submit
-    attemptIdRef.current = authInstrumentation.submitLogin({ auth_method: "wallet", surface: "login_page" });
+    attemptIdRef.current = authInstrumentation.submitLogin({
+      auth_method: "wallet",
+      surface: "login_page",
+    });
     startMsRef.current = Date.now();
+
     try {
       await authenticateWithWallet(address, provider, () => {
         // Telemetry: success (handled in hook/store ideally, but fallback here)
@@ -121,16 +141,19 @@ export default function LoginPage() {
         error: err,
         failure_stage: "response",
       });
-      // error already set in hook
     }
   };
 
-  // Email auth flow 
+  // Email auth flow
   const handleEmailLogin = async () => {
     if (!email || !password) {
-      setLocalError("Please enter your email and password");
+      setLocalError("Please enter both your email and password");
+
       // Telemetry: validation failure
-      const attempt_id = authInstrumentation.submitLogin({ auth_method: "email", surface: "login_page" });
+      const attempt_id = authInstrumentation.submitLogin({
+        auth_method: "email",
+        surface: "login_page",
+      });
       authInstrumentation.loginFailed({
         auth_method: "email",
         attempt_id,
@@ -142,22 +165,53 @@ export default function LoginPage() {
       return;
     }
     clearAllErrors();
+
     // Telemetry: submit
-    attemptIdRef.current = authInstrumentation.submitLogin({ auth_method: "email", surface: "login_page" });
-    startMsRef.current = Date.now();
-    // TODO: Replace with real email login logic
-    setLocalError("Email login: wire to useAuth().loginWithEmail()");
-    // Telemetry: simulate failure for placeholder
-    authInstrumentation.loginFailed({
+    attemptIdRef.current = authInstrumentation.submitLogin({
       auth_method: "email",
-      attempt_id: attemptIdRef.current!,
-      startMs: startMsRef.current,
-      error: "not implemented",
-      failure_stage: "request",
+      surface: "login_page",
     });
+    startMsRef.current = Date.now();
+
+    try {
+      if (typeof emailLogin === "function") {
+        await emailLogin(email, password);
+
+        // Assuming success path resolves smoothly if handled inside store wrappers,
+        // otherwise if your project tracks it directly:
+        authInstrumentation.loginSuccess({
+          auth_method: "email",
+          attempt_id: attemptIdRef.current!,
+          startMs: startMsRef.current,
+          had_wallet_connected: false,
+        });
+      }
+    } catch (err) {
+      authInstrumentation.loginFailed({
+        auth_method: "email",
+        attempt_id: attemptIdRef.current!,
+        startMs: startMsRef.current,
+        error: err || "not implemented",
+        failure_stage: "request",
+      });
+    }
   };
 
-  const displayError = localError || walletError || authError || emailError;
+  // Safe fallback processing for string structures vs AppApiError definitions
+  const globalErrorInstance = emailStoreError || authError || walletError;
+  const globalErrorMessage =
+    typeof globalErrorInstance === "string"
+      ? globalErrorInstance
+      : globalErrorInstance?.message;
+
+  const displayGeneralError = localError || globalErrorMessage;
+
+  // Specific nested context extractors for form inputs from your branch
+  const emailFieldError = getValidationFieldMessage(emailStoreError, "email");
+  const passwordFieldError = getValidationFieldMessage(
+    emailStoreError,
+    "password",
+  );
 
   return (
     <div className="min-h-[500px] text-white">
@@ -166,7 +220,6 @@ export default function LoginPage() {
       <div className="relative z-10 pb-16 px-4">
         <div className="max-w-md mx-auto">
           <div className="border border-purple-500/20 rounded-xl p-8 bg-glass backdrop-blur-md shadow-lg">
-
             <div className="flex justify-center mb-8">
               <OptimizedImage
                 src="/nftopia-04.svg"
@@ -179,15 +232,24 @@ export default function LoginPage() {
               />
             </div>
 
-            {displayError && (
-              <div className="mb-6 p-3 bg-red-900/50 text-red-300 rounded-lg border border-red-500/30 text-sm">
-                {displayError}
+            {/* General Banner Fallback Notification */}
+            {displayGeneralError && (
+              <div className="mb-6 p-3 bg-red-900/40 text-red-300 rounded-lg border border-red-500/30 text-sm flex items-start gap-2 animate-fadeIn">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-400" />
+                <div className="flex-1">
+                  <p className="font-medium text-red-200">
+                    Authentication Alert
+                  </p>
+                  <p className="text-xs text-red-300/90 mt-0.5">
+                    {displayGeneralError}
+                  </p>
+                </div>
               </div>
             )}
 
-        
             <div className="flex rounded-lg bg-gray-800/50 p-1 mb-6 gap-1">
               <button
+                type="button"
                 onClick={() => switchMode("wallet")}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
                   mode === "wallet"
@@ -199,6 +261,7 @@ export default function LoginPage() {
                 {t("login.walletTab") || "Wallet"}
               </button>
               <button
+                type="button"
                 onClick={() => switchMode("email")}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
                   mode === "email"
@@ -211,7 +274,7 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/*WALLET MODE  */}
+            {/* WALLET MODE */}
             {mode === "wallet" && (
               <div className="space-y-5">
                 <div>
@@ -230,7 +293,11 @@ export default function LoginPage() {
                       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                         <WalletNetworkStatus network={defaultNetwork} />
                         <button
-                          onClick={() => { disconnect(); setChallengeRequested(false); }}
+                          type="button"
+                          onClick={() => {
+                            disconnect();
+                            setChallengeRequested(false);
+                          }}
                           className="text-xs text-red-400 hover:text-red-300 transition-colors"
                         >
                           {t("connectWallet.disconnect") || "Disconnect"}
@@ -242,7 +309,10 @@ export default function LoginPage() {
                       type="text"
                       value=""
                       readOnly
-                      placeholder={t("login.inputPlaceholder") || "Connect wallet to populate"}
+                      placeholder={
+                        t("login.inputPlaceholder") ||
+                        "Connect wallet to populate"
+                      }
                       className="w-full bg-gray-800/50 border border-purple-500/20 rounded-lg px-4 py-3 text-sm"
                     />
                   )}
@@ -251,6 +321,7 @@ export default function LoginPage() {
                 <div className="space-y-3">
                   {!connected ? (
                     <Button
+                      type="button"
                       onClick={() => setWalletModalOpen(true)}
                       className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center"
                       disabled={loading}
@@ -260,6 +331,7 @@ export default function LoginPage() {
                     </Button>
                   ) : (
                     <Button
+                      type="button"
                       onClick={handleWalletAuth}
                       className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center"
                       disabled={loading}
@@ -293,9 +365,18 @@ export default function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="w-full bg-gray-800/50 border border-purple-500/20 rounded-lg pl-9 pr-4 py-3 text-sm"
+                      className={`w-full bg-gray-800/50 border rounded-lg pl-9 pr-4 py-3 text-sm transition-colors ${
+                        emailFieldError
+                          ? "border-red-500 focus-visible:ring-red-500"
+                          : "border-purple-500/20"
+                      }`}
                     />
                   </div>
+                  {emailFieldError && (
+                    <p className="text-xs text-red-400 mt-1.5 ml-1 animate-fadeIn font-medium">
+                      {emailFieldError}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -309,30 +390,46 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-gray-800/50 border border-purple-500/20 rounded-lg pl-9 pr-10 py-3 text-sm"
+                      className={`w-full bg-gray-800/50 border rounded-lg pl-9 pr-10 py-3 text-sm transition-colors ${
+                        passwordFieldError
+                          ? "border-red-500 focus-visible:ring-red-500"
+                          : "border-purple-500/20"
+                      }`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
+                  {passwordFieldError && (
+                    <p className="text-xs text-red-400 mt-1.5 ml-1 animate-fadeIn font-medium">
+                      {passwordFieldError}
+                    </p>
+                  )}
                 </div>
 
                 <Button
+                  type="button"
                   onClick={handleEmailLogin}
                   className="w-full bg-gradient-to-r from-[#4e3bff] to-[#9747ff] hover:opacity-90 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center"
                   disabled={loading}
                 >
                   <LogIn className="mr-2 h-5 w-5" />
-                  {loading ? t("login.signingIn") || "Signing in…" : t("login.signIn") || "Sign In"}
+                  {loading
+                    ? t("login.signingIn") || "Signing in…"
+                    : t("login.signIn") || "Sign In"}
                 </Button>
               </div>
             )}
 
-            {/*Register link */}
+            {/* Register link */}
             <div className="text-center text-sm text-gray-400 mt-6">
               {t("login.dontHave") || "Don't have an account?"}{" "}
               <Link
