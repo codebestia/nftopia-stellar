@@ -81,7 +81,6 @@ export const useAuthStore = create<AuthStore>()(
             throw new Error("Not implemented");
           },
           isAccessTokenExpired: () => true,
-          getCurrentUser: () => null,
           logout: async () => {
             throw new Error("Not implemented");
           },
