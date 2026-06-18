@@ -515,7 +515,7 @@ fn test_burn_by_unauthorized_fails() {
 fn test_burn_non_existent_token_fails() {
     let env = Env::default();
     env.mock_all_auths();
-    let (client, admin) = setup(&env);
+    let (client, _admin) = setup(&env);
 
     let owner = Address::generate(&env);
     let non_existent_id = 999u64;
