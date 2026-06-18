@@ -7,7 +7,6 @@ pub const INTERFACE_BATCH: u32 = 0x04;
 pub const INTERFACE_ACCESS_CONTROL: u32 = 0x05;
 pub const INTERFACE_BATCH_BURN: u32 = 0x1F_00_00_01;
 
-
 pub fn supports_interface(interface_id: u32) -> bool {
     matches!(
         interface_id,

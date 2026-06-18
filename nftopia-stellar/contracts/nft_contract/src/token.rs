@@ -209,14 +209,27 @@ pub fn burn(env: &Env, caller: &Address, token_id: u64) -> Result<(), ContractEr
         .persistent()
         .get(&DataKey::TokenOwner(token_id))
         .ok_or_else(|| {
-            events::emit_burn_failed(env, token_id, caller.clone(), ContractError::TokenNotFound as u32);
+            events::emit_burn_failed(
+                env,
+                token_id,
+                caller.clone(),
+                ContractError::TokenNotFound as u32,
+            );
             ContractError::TokenNotFound
         })?;
 
     // 2. Validate not already burned - check if token data exists
-    let token_data: Option<TokenData> = env.storage().persistent().get(&DataKey::TokenData(token_id));
+    let token_data: Option<TokenData> = env
+        .storage()
+        .persistent()
+        .get(&DataKey::TokenData(token_id));
     if token_data.is_none() {
-        events::emit_burn_failed(env, token_id, caller.clone(), ContractError::AlreadyBurned as u32);
+        events::emit_burn_failed(
+            env,
+            token_id,
+            caller.clone(),
+            ContractError::AlreadyBurned as u32,
+        );
         return Err(ContractError::AlreadyBurned);
     }
 
@@ -225,7 +238,12 @@ pub fn burn(env: &Env, caller: &Address, token_id: u64) -> Result<(), ContractEr
     let is_burner = access_control::has_role(env, caller, crate::types::role::BURNER);
 
     if !is_owner && !is_burner {
-        events::emit_burn_failed(env, token_id, caller.clone(), ContractError::NotAuthorized as u32);
+        events::emit_burn_failed(
+            env,
+            token_id,
+            caller.clone(),
+            ContractError::NotAuthorized as u32,
+        );
         return Err(ContractError::NotAuthorized);
     }
 
@@ -294,11 +312,7 @@ pub fn burn(env: &Env, caller: &Address, token_id: u64) -> Result<(), ContractEr
 /// Returns:
 /// - Ok(()) if all tokens were successfully burned
 /// - Error if any token validation fails
-pub fn batch_burn(
-    env: &Env,
-    caller: &Address,
-    token_ids: Vec<u64>,
-) -> Result<(), ContractError> {
+pub fn batch_burn(env: &Env, caller: &Address, token_ids: Vec<u64>) -> Result<(), ContractError> {
     // 1. Validate batch size
     let n = token_ids.len();
     if n == 0 || n > MAX_BATCH_SIZE {
